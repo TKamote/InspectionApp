@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    // Remove the "typeRoots" property to allow TypeScript to include default type definitions
+  },
+  "extends": "expo/tsconfig.base"
+}
