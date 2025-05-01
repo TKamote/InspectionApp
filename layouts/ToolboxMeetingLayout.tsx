@@ -243,9 +243,14 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
       <html>
         <head>
           <style>
+            @page {
+              size: A4; /* Set the page size to A4 */
+              margin-top: 20mm; /* Set top margin */
+            }
             body {
               font-family: Arial, sans-serif;
-              margin: 20px 20px 20px 80px; /* 20px top/bottom, 20px right, 80px left */
+              padding-left: 40px; /* Add padding to the body */
+              margin: 20px; /*
               line-height: 1.3; /* Updated: Reduced line height to 1.3 */
             }
             .header {
@@ -258,16 +263,16 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
               display: block;
             }
             .section {
-              margin-bottom: 15px;
+              margin-bottom: 12px;
               page-break-inside: avoid; /* Prevent page breaks inside sections */
             }
             .section-title {
-              font-size: 18px;
+              font-size: 16px;
               font-weight: bold;
-              margin-bottom: 10px;
+              margin-bottom: 7px;
             }
             .section-content {
-              font-size: 14px;
+              font-size: 12px;
             }
             ul {
               padding-left: 20px;
@@ -283,7 +288,7 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
         </head>
         <body>
           <div class="header">
-            <h1>Toolbox Meeting Report</h1>
+            <h1>Toolbox Meeting</h1>
             <p>Date: ${date}</p>
             <p>Conducted By: ${conductorName}</p>
             <p>Designation: ${designation}</p>
@@ -320,7 +325,7 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
               <p>${remarks || "No comments"}</p>
             </div>
           </div>
-          <div class="section page-break">
+          <div class="section">
             <div class="section-title">Attendees:</div>
             <div class="section-content">
               <ul>
@@ -484,7 +489,10 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
 
         {/* Generate PDF Button */}
         <Pressable style={styles.generatePdfButton} onPress={generatePDF}>
-          <Text style={styles.generatePdfButtonText}>Generate PDF</Text>
+          <View style={styles.generatePdfButtonContent}>
+            <FontAwesome name="download" size={20} color="#fff" />
+            <Text style={styles.generatePdfButtonText}>PDF</Text>
+          </View>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -664,9 +672,14 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   generatePdfButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
+    color: "#fff", // Set text color to white
+    fontWeight: "bold", // Make the text bold
+    fontSize: 16, // Set font size
+    marginLeft: 8, // Add spacing between the icon and text
+  },
+  generatePdfButtonContent: {
+    flexDirection: "row", // Align icon and text horizontally
+    alignItems: "center", // Center the icon and text vertically
   },
   remarksContainer: {
     marginBottom: 15,
