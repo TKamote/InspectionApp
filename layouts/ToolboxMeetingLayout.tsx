@@ -3,18 +3,26 @@ import {
   View,
   Text,
   TextInput,
-  Button,
-  FlatList,
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
   Pressable,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { FontAwesome } from "@expo/vector-icons";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system";
+
+const convertImageToBase64 = async (uri: string): Promise<string> => {
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  return `data:image/jpeg;base64,${base64}`;
+};
 
 type Attendee = {
   id: string;
@@ -40,9 +48,10 @@ type Props = {
 export default function ToolboxMeetingLayout({ reportType }: Props) {
   const [date, setDate] = useState(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-      now.getDate()
-    ).padStart(2, "0")}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(now.getDate()).padStart(2, "0")}`;
   });
   const [conductorName, setConductorName] = useState("");
   const [designation, setDesignation] = useState("");
@@ -66,177 +75,132 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
       title: "Personal Protective Equipment (PPE)",
       items: [
         { id: "1", text: "Wear N95 mask for dusty works.", checked: false },
-        { id: "2", text: "Wear anticut gloves for rough surfaces.", checked: false },
+        {
+          id: "2",
+          text: "Wear anticut gloves for rough surfaces.",
+          checked: false,
+        },
         { id: "3", text: "Wear safety shoes.", checked: false },
-        { id: "4", text: "Wear any other PPE as per RA of specific work.", checked: false },
+        {
+          id: "4",
+          text: "Wear any other PPE as per RA of specific work.",
+          checked: false,
+        },
       ],
     },
     {
       id: "3",
       title: "Electrical Safety",
       items: [
-        { id: "1", text: "Check that extension cords have no damage before using.", checked: false },
-        { id: "2", text: "Avoid overloading electrical outlets.", checked: false },
-        { id: "3", text: "Use ELCB when plugging drills, power tools, etc.", checked: false },
-        { id: "4", text: "Keep electrical equipment away from water.", checked: false },
+        {
+          id: "1",
+          text: "Check that extension cords have no damage before using.",
+          checked: false,
+        },
+        {
+          id: "2",
+          text: "Avoid overloading electrical outlets.",
+          checked: false,
+        },
+        {
+          id: "3",
+          text: "Use ELCB when plugging drills, power tools, etc.",
+          checked: false,
+        },
+        {
+          id: "4",
+          text: "Keep electrical equipment away from water.",
+          checked: false,
+        },
       ],
     },
     {
       id: "4",
       title: "Fire Prevention and Preparedness",
       items: [
-        { id: "1", text: "Check that exit signage is illuminated.", checked: false },
-        { id: "2", text: "Keep flammable materials away from heat sources.", checked: false },
-        { id: "3", text: "Know your role in case of emergency.", checked: false },
+        {
+          id: "1",
+          text: "Check that exit signage is illuminated.",
+          checked: false,
+        },
+        {
+          id: "2",
+          text: "Keep flammable materials away from heat sources.",
+          checked: false,
+        },
+        {
+          id: "3",
+          text: "Know your role in case of emergency.",
+          checked: false,
+        },
       ],
     },
     {
       id: "5",
       title: "Work at Height",
       items: [
-        { id: "1", text: "Ensure ladders are securely positioned.", checked: false },
-        { id: "2", text: "Maintain three points of contact on ladders.", checked: false },
-        { id: "3", text: "Use ladders that are EN 131 standard compliant.", checked: false },
+        {
+          id: "1",
+          text: "Ensure ladders are securely positioned.",
+          checked: false,
+        },
+        {
+          id: "2",
+          text: "Maintain three points of contact on ladders.",
+          checked: false,
+        },
+        {
+          id: "3",
+          text: "Use ladders that are EN 131 standard compliant.",
+          checked: false,
+        },
       ],
     },
     {
       id: "6",
       title: "Machinery Safety",
       items: [
-        { id: "1", text: "Follow lockout/tagout procedure during maintenance.", checked: false },
-        { id: "2", text: "Wear personal protective equipment (PPE) specific to the machine.", checked: false },
+        {
+          id: "1",
+          text: "Follow lockout/tagout procedure during maintenance.",
+          checked: false,
+        },
+        {
+          id: "2",
+          text: "Wear personal protective equipment (PPE) specific to the machine.",
+          checked: false,
+        },
       ],
     },
     {
       id: "7",
       title: "Mental Well-being",
       items: [
-        { id: "1", text: "Take regular breaks to reduce stress and stay refreshed.", checked: false },
+        {
+          id: "1",
+          text: "Take regular breaks to reduce stress and stay refreshed.",
+          checked: false,
+        },
         { id: "2", text: "Stay hydrated throughout the day.", checked: false },
-        { id: "3", text: "If you're feeling overwhelmed or struggling, talk to your supervisor or someone you trust.", checked: false },
-        { id: "4", text: "If you're feeling unwell, see a doctor.", checked: false },
+        {
+          id: "3",
+          text: "If you're feeling overwhelmed or struggling, talk to your supervisor or someone you trust.",
+          checked: false,
+        },
+        {
+          id: "4",
+          text: "If you're feeling unwell, see a doctor.",
+          checked: false,
+        },
       ],
     },
   ]);
+  const [remarks, setRemarks] = useState<string>(""); // State for remarks
 
   const handleAddAttendee = () => {
     const newId = (attendees.length + 1).toString(); // Generate a new ID
     setAttendees((prev) => [...prev, { id: newId, name: "" }]); // Add a new attendee
   };
-
-  const renderHeader = () => (
-    <>
-      {/* Date Input (Inline) */}
-      <View style={styles.inlineInputGroup}>
-        <Text style={styles.label}>Date:</Text>
-        <TextInput
-          style={styles.inlineInput}
-          placeholder="YYYY-MM-DD"
-          value={date}
-          editable={false} // Make the input read-only
-        />
-      </View>
-
-      {/* Conductor Section (Inline) */}
-      <View style={styles.inlineInputGroup}>
-        <Text style={styles.label}>Conducted By:</Text>
-        <TextInput
-          style={styles.inlineInput}
-          placeholder="Name"
-          value={conductorName}
-          onChangeText={setConductorName}
-        />
-      </View>
-      <View style={styles.inlineInputGroup}>
-        <Text style={styles.label}>Designation:</Text>
-        <TextInput
-          style={styles.inlineInput}
-          placeholder="Designation"
-          value={designation}
-          onChangeText={setDesignation}
-        />
-      </View>
-
-      {/* Attendees Section */}
-      <View style={styles.attendeeHeader}>
-        <Text style={styles.sectionTitle}>Attendees:</Text>
-        <TouchableOpacity onPress={handleAddAttendee}>
-          <FontAwesome name="user-plus" size={24} color="#00796b" style={styles.addIcon} />
-        </TouchableOpacity>
-      </View>
-    </>
-  );
-
-  const renderFooter = () => (
-    <>
-      {/* Topics Section */}
-      <Text style={styles.sectionTitle}>Topics Discussed:</Text>
-      <FlatList
-        data={topics}
-        keyExtractor={(item) => item.id}
-        renderItem={renderTopic}
-        style={styles.topicList}
-      />
-
-      {/* Image Preview Section */}
-      <View style={styles.imageUploadContainer}>
-        {/* Take Photo Button */}
-        <TouchableOpacity style={styles.imageUploadButton} onPress={handleImageSelection}>
-          <View style={styles.imageUploadContent}>
-            <FontAwesome name="camera" size={20} color="#fff" />
-            <Text style={styles.imageUploadText}>Take Photo</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Image Preview */}
-        <View style={styles.imagePreviewBox}>
-          {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-          ) : (
-            <Text style={styles.previewPlaceholder}>No Image</Text>
-          )}
-        </View>
-      </View>
-
-      {/* Generate PDF Button */}
-      <Pressable style={styles.generatePdfButton} onPress={generatePDF}>
-        <Text style={styles.generatePdfButtonText}>Generate PDF</Text>
-      </Pressable>
-    </>
-  );
-
-  const renderTopic = ({ item }: { item: Topic }) => (
-    <View style={styles.topicContainer}>
-      <Text style={styles.topicTitle}>{item.title}</Text>
-      {item.items.map((topicItem) => (
-        <View key={topicItem.id} style={styles.topicItem}>
-          <Text style={styles.topicText}>{topicItem.text}</Text>
-          <TouchableOpacity
-            style={[
-              styles.checkbox,
-              topicItem.checked && styles.checkboxChecked,
-            ]}
-            onPress={() => {
-              setTopics((prevTopics) =>
-                prevTopics.map((topic) =>
-                  topic.id === item.id
-                    ? {
-                        ...topic,
-                        items: topic.items.map((i) =>
-                          i.id === topicItem.id
-                            ? { ...i, checked: !i.checked }
-                            : i
-                        ),
-                      }
-                    : topic
-                )
-              );
-            }}
-          />
-        </View>
-      ))}
-    </View>
-  );
 
   const handleImageSelection = async () => {
     // Request camera permissions
@@ -264,25 +228,38 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
   };
 
   const generatePDF = async () => {
+    let base64Image = "";
+
+    // Convert the image to base64 if an image URI exists
+    if (imageUri) {
+      try {
+        base64Image = await convertImageToBase64(imageUri);
+      } catch (error) {
+        console.error("Error converting image to base64:", error);
+      }
+    }
+
     const htmlContent = `
       <html>
         <head>
           <style>
             body {
               font-family: Arial, sans-serif;
-              margin: 20px;
+              margin: 20px 20px 20px 80px; /* 20px top/bottom, 20px right, 80px left */
+              line-height: 1.3; /* Updated: Reduced line height to 1.3 */
             }
             .header {
               text-align: center;
               margin-bottom: 20px;
             }
             .photo {
-              width: 100%;
-              aspect-ratio: 4/3;
-              margin-bottom: 20px;
+              width: 60%; /* Updated: Scale the photo to 60% of the container width */
+              margin: 0 auto 20px auto; /* Center the photo and add spacing */
+              display: block;
             }
             .section {
-              margin-bottom: 20px;
+              margin-bottom: 15px;
+              page-break-inside: avoid; /* Prevent page breaks inside sections */
             }
             .section-title {
               font-size: 18px;
@@ -291,6 +268,16 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
             }
             .section-content {
               font-size: 14px;
+            }
+            ul {
+              padding-left: 20px;
+            }
+            li {
+              margin-bottom: 3px; /* Updated: Reduced margin-bottom to 3px */
+            }
+            .page-break {
+              page-break-before: always; /* Force a page break before this element */
+              margin-top: 20px; /* Ensure proper spacing on new pages */
             }
           </style>
         </head>
@@ -301,21 +288,17 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
             <p>Conducted By: ${conductorName}</p>
             <p>Designation: ${designation}</p>
           </div>
-          <div class="photo">
-            ${
-              imageUri
-                ? `<img src="${imageUri}" style="width: 100%; height: auto;" />`
-                : `<p>No Image</p>`
-            }
-          </div>
-          <div class="section">
-            <div class="section-title">Topics Discussed:</div>
-            <div class="section-content">
-              ${topics
-                .map(
-                  (topic) => `
-                <div>
-                  <strong>${topic.title}</strong>
+          ${
+            base64Image
+              ? `<img src="${base64Image}" class="photo" alt="Meeting Photo" />`
+              : `<p style="text-align: center; color: #888;">No Photo Provided</p>`
+          }
+          ${topics
+            .map(
+              (topic) => `
+              <div class="section">
+                <div class="section-title">${topic.title}</div>
+                <div class="section-content">
                   <ul>
                     ${topic.items
                       .map(
@@ -327,17 +310,25 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
                       .join("")}
                   </ul>
                 </div>
-              `
-                )
-                .join("")}
+              </div>
+            `
+            )
+            .join("")}
+          <div class="section">
+            <div class="section-title remarks">Remarks:</div>
+            <div class="section-content">
+              <p>${remarks || "No comments"}</p>
             </div>
           </div>
-          <div class="section">
+          <div class="section page-break">
             <div class="section-title">Attendees:</div>
             <div class="section-content">
               <ul>
                 ${attendees
-                  .map((attendee) => `<li>${attendee.name || "Unnamed Attendee"}</li>`)
+                  .map(
+                    (attendee) =>
+                      `<li>${attendee.name || "Unnamed Attendee"}</li>`
+                  )
                   .join("")}
               </ul>
             </div>
@@ -360,30 +351,143 @@ export default function ToolboxMeetingLayout({ reportType }: Props) {
   };
 
   return (
-    <FlatList
-      data={attendees}
-      keyExtractor={(item) => item.id}
-      ListHeaderComponent={renderHeader}
-      ListFooterComponent={renderFooter}
-      renderItem={({ item }) => (
-        <View style={styles.attendeeRow}>
-          <Text style={styles.attendeeLabel}>S/N: {item.id}</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Header Section */}
+        <View style={styles.inlineInputGroup}>
+          <Text style={styles.label}>Date:</Text>
           <TextInput
-            style={styles.attendeeInput}
-            placeholder="Enter name"
-            value={item.name}
-            onChangeText={(text) =>
-              setAttendees((prev) =>
-                prev.map((attendee) =>
-                  attendee.id === item.id ? { ...attendee, name: text } : attendee
-                )
-              )
-            }
+            style={styles.inlineInput}
+            placeholder="YYYY-MM-DD"
+            value={date}
+            editable={false} // Make the input read-only
           />
         </View>
-      )}
-      style={styles.attendeeList}
-    />
+        <View style={styles.inlineInputGroup}>
+          <Text style={styles.label}>Conducted By:</Text>
+          <TextInput
+            style={styles.inlineInput}
+            placeholder="Name"
+            value={conductorName}
+            onChangeText={setConductorName}
+          />
+        </View>
+        <View style={styles.inlineInputGroup}>
+          <Text style={styles.label}>Designation:</Text>
+          <TextInput
+            style={styles.inlineInput}
+            placeholder="Designation"
+            value={designation}
+            onChangeText={setDesignation}
+          />
+        </View>
+
+        {/* Attendees Section */}
+        <View style={styles.attendeeHeader}>
+          <Text style={styles.sectionTitle}>Attendees:</Text>
+          <TouchableOpacity onPress={handleAddAttendee}>
+            <FontAwesome
+              name="user-plus"
+              size={24}
+              color="#00796b"
+              style={styles.addIcon}
+            />
+          </TouchableOpacity>
+        </View>
+        {attendees.map((attendee) => (
+          <View key={attendee.id} style={styles.attendeeRow}>
+            <Text style={styles.attendeeLabel}>S/N: {attendee.id}</Text>
+            <TextInput
+              style={styles.attendeeInput}
+              placeholder="Enter name"
+              value={attendee.name}
+              onChangeText={(text) =>
+                setAttendees((prev) =>
+                  prev.map((a) =>
+                    a.id === attendee.id ? { ...a, name: text } : a
+                  )
+                )
+              }
+            />
+          </View>
+        ))}
+
+        {/* Topics Section */}
+        <Text style={styles.sectionTitle}>Topics Discussed:</Text>
+        {topics.map((topic) => (
+          <View key={topic.id} style={styles.topicContainer}>
+            <Text style={styles.topicTitle}>{topic.title}</Text>
+            {topic.items.map((item) => (
+              <View key={item.id} style={styles.topicItem}>
+                <Text style={styles.topicText}>{item.text}</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.checkbox,
+                    item.checked && styles.checkboxChecked,
+                  ]}
+                  onPress={() => {
+                    setTopics((prevTopics) =>
+                      prevTopics.map((t) =>
+                        t.id === topic.id
+                          ? {
+                              ...t,
+                              items: t.items.map((i) =>
+                                i.id === item.id
+                                  ? { ...i, checked: !i.checked }
+                                  : i
+                              ),
+                            }
+                          : t
+                      )
+                    );
+                  }}
+                />
+              </View>
+            ))}
+          </View>
+        ))}
+
+        {/* Remarks Section */}
+        <View style={styles.remarksContainer}>
+          <Text style={styles.sectionTitle}>Remarks:</Text>
+          <TextInput
+            style={styles.remarksInput}
+            placeholder="No comments"
+            value={remarks}
+            onChangeText={setRemarks}
+            multiline
+          />
+        </View>
+
+        {/* Image Upload Section */}
+        <View style={styles.imageUploadContainer}>
+          <TouchableOpacity
+            style={styles.imageUploadButton}
+            onPress={handleImageSelection}
+          >
+            <View style={styles.imageUploadContent}>
+              <FontAwesome name="camera" size={20} color="#fff" />
+              <Text style={styles.imageUploadText}>Take Photo</Text>
+            </View>
+          </TouchableOpacity>
+          <View style={styles.imagePreviewBox}>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+            ) : (
+              <Text style={styles.previewPlaceholder}>No Image</Text>
+            )}
+          </View>
+        </View>
+
+        {/* Generate PDF Button */}
+        <Pressable style={styles.generatePdfButton} onPress={generatePDF}>
+          <Text style={styles.generatePdfButtonText}>Generate PDF</Text>
+        </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -392,6 +496,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     backgroundColor: "#f5f5f5",
+  },
+  scrollContainer: {
+    paddingBottom: 20,
   },
   inlineInputGroup: {
     flexDirection: "row", // Make the label and input inline
@@ -486,7 +593,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
     marginRight: 10, // Add spacing to the right
-    
   },
   imageUploadText: {
     color: "#fff",
@@ -495,7 +601,7 @@ const styles = StyleSheet.create({
   },
   imagePreviewBox: {
     width: 200, // Square dimensions
-    aspectRatio: 4/3, // Maintain square aspect ratio
+    aspectRatio: 4 / 3, // Maintain square aspect ratio
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 5,
@@ -561,5 +667,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  remarksContainer: {
+    marginBottom: 15,
+  },
+  remarksInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    padding: 10,
+    backgroundColor: "#fff",
+    textAlignVertical: "top",
   },
 });
